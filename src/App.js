@@ -3,12 +3,15 @@ import logo from './logo.svg';
 import './App.css';
 
 let user = 'reeri';
+let email = 'juliantreweeke@gmail.com'
 let recognition;
-let welcome = `Welcome ${user} to your shopping list app`;
-let welcomesplit = welcome.split(' ');
-let filter = [...welcomesplit,'start','stop'];
+let welcome = `Welcome ${user} to your shopping list app. Say, menu, to hear list of voice commands.`;
+let commands = 'Start! Start recording shopping list. \
+                Stop! Stop the recording. \
+                Reed! Reed out shopping list. \
+                Send! Send the shopping list by email.'
 
-
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 
 class App extends Component {
@@ -16,95 +19,128 @@ class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      words: [''],
+      words: [],
       final: [''],
       recording: false,
       shoppinglist: [''],
       counter: 0
     };
-    this.sortwords = this.sortwords.bind(this);
+
+    this.menu = this.menu.bind(this);
     this.speak = this.speak.bind(this);
     this.erase = this.erase.bind(this);
+    this.send = this.send.bind(this);
 
   }
-  
+
 
   componentDidMount() {
     // start webkitSpeechRecognition API and check for browser support
-
-    this.speak(welcome);
-
-    try {
-
-      let SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = "en-GB";
-      recognition.start();
+    this.speak(welcome,5000);
+    // this.speak(welcome);
+    // this.menu();
 
 
-      recognition.onresult = (event) => {
-        let final_transcript = '';
-        let interim_transcript = '';
-        let index = event.resultIndex;
-
-        for (let i = index; i < event.results.length; ++i) {
-          
-          let transcript = event.results[i][0].transcript;
-
-
-          this.setState({
-            counter: this.state.counter + 1});
-
-
-          if (event.results[i].isFinal) {
-            final_transcript += transcript;
-            this.setState({final: final_transcript})
-
-          } else {
-            
-            
-            
-            interim_transcript += transcript;
-            
-            this.sortwords(transcript);
-            
-            // interim_transcript = interim_transcript.replace(/ *\b\S*?start\S*\b/g, '');
-        
-            
-            filter.map( (word) => {
-            
-              var reg = new RegExp(word, "g");
-              interim_transcript = interim_transcript.replace(reg, "");
-            
-            })
-            
-              
-            
-            
-            
-            
-            
-  
-            
-            
-            
-            this.state.recording ? this.setState({words: interim_transcript}) : null;
-
-          }
-        }
-        // console.log(interim_transcript,final_transcript);
-      };
-
-    } catch (e) {
-      console.error(e);
-      alert('This app only works in chrome!! Its googles fault not mine haha')
     }
 
-  }
+ menu() {
+     console.log('menu started');
 
-  speak(message) {
+
+     try {
+
+       let menu_recognition = new SpeechRecognition();
+       menu_recognition.continuous = true;
+       menu_recognition.interimResults = true;
+       menu_recognition.lang = "en-GB";
+       menu_recognition.start();
+
+
+       menu_recognition.onresult = (event) => {
+         let final_transcript = '';
+         let interim_transcript = '';
+
+         for (let i = event.resultIndex; i < event.results.length; ++i) {
+
+           let transcript = event.results[i][0].transcript;
+
+
+           if (event.results[i].isFinal) {
+
+           } else {
+
+
+             interim_transcript += transcript;
+
+             interim_transcript.indexOf("test") >= 0 ? console.log('working'): null;
+
+             interim_transcript.indexOf("start") >= 0 ? (console.log('started'),this.setState({recording: true}) , menu_recognition.stop(), this.dictate() ): null;
+
+             interim_transcript.indexOf("read") >= 0 ? (console.log('reading'), menu_recognition.stop(), this.speak(this.state.words,3000) ): null;
+
+             interim_transcript.indexOf("menu") >= 0 ? (console.log('reading menu'), menu_recognition.stop(), this.speak(commands,12000) ): null;
+
+             interim_transcript.indexOf("send") >= 0 ? (console.log('reading menu'), menu_recognition.stop(), this.send(email) ): null;
+
+
+           }
+         }
+
+       };
+
+     } catch (e) {
+       console.error(e);
+       alert('This app only works in chrome!! Its googles fault not mine haha')
+     }
+
+   }
+
+   dictate() {
+     console.log('dictate started');
+
+     let dictate_recognition = new SpeechRecognition();
+     dictate_recognition.continuous = true;
+     dictate_recognition.interimResults = true;
+     dictate_recognition.lang = "en-GB";
+     dictate_recognition.start();
+
+
+     dictate_recognition.onresult = (event) => {
+       let final_transcript = '';
+       let interim_transcript = '';
+
+       for (let i = event.resultIndex; i < event.results.length; ++i) {
+
+         let transcript = event.results[i][0].transcript;
+
+
+         if (event.results[i].isFinal) {
+
+         } else {
+
+
+           interim_transcript += transcript;
+
+           interim_transcript.indexOf("stop") >= 0 ? (console.log('stopped'),this.setState({recording: false}) , dictate_recognition.stop(), this.menu() ): null;
+           interim_transcript = interim_transcript.replace(/ *\b\S*?stop\S*\b/g, '');
+           this.setState({words: interim_transcript});
+
+         }
+       }
+
+     };
+
+
+   }
+
+
+   // read() {
+   //
+   // }
+
+
+
+  speak(message,time) {
     var speech = new SpeechSynthesisUtterance();
 
     // Set the text and voice attributes.
@@ -114,18 +150,50 @@ class App extends Component {
     speech.pitch = -2;
     window.speechSynthesis.speak(speech);
 
-  }
-
-  sortwords(word) {
-
-    word.indexOf("start") >= 0 ? (console.log('started'),this.setState({recording: true}) ): null;
-
-    word.indexOf("stop") >= 0 ? this.setState({recording: false}) : null;
-    
-    // this.erase(word,"start");
+    setTimeout( () => { this.menu() }, time);
 
   }
-  
+
+  send(email) {
+    if (this.state.words.length < 1){
+
+      this.speak("Cannot send. Shopping list is empty. Say start to make one.",5000);
+      return;
+    }
+    this.speak(`Sending your shopping list as an email. Thank you ${user}`,4000);
+
+  }
+
+
+
+
+  //   speak(message, callback) {
+  //     return new Promise(function (resolve, reject){
+  //
+  //       var speech = new SpeechSynthesisUtterance();
+  //
+  //       // Set the text and voice attributes.
+  //       speech.text = message;
+  //       speech.volume = 1;
+  //       speech.rate = 0.8;
+  //       speech.pitch = -2;
+  //       window.speechSynthesis.speak(speech);
+  //
+  //         resolve( () =>{ callback() } ); //if the action succeeded
+  //         reject( console.log('didnot work')); //if the action did not succeed
+  //     });
+  // }
+
+
+
+
+
+
+
+
+
+
+
   erase(word,target){
     console.log("erase started");
     word = word.replace(/ *\b\S*?start\S*\b/g, '');
